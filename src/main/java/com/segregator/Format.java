@@ -6,7 +6,7 @@ public enum Format {
 
   public String format;
 
-  Format(String extension) {
-    this.format = extension;
+  Format(String format) {
+    this.format = format;
   }
 }

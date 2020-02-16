@@ -15,15 +15,14 @@ import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 class Segregator {
-  private AtomicLong filesCount = new AtomicLong(0L);
   private Logger log = LoggerFactory.getLogger(Segregator.class);
   private SimpleDateFormat dataFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+  private WriteInFile writeInFile = new WriteInFile();
 
   void runSegregation() {
     Path path = Paths.get(Catalogs.HOME.path);
@@ -45,7 +44,7 @@ class Segregator {
     for (WatchEvent event : events) {
       Path source = Paths.get(event.context().toString());
       if (event.kind() == ENTRY_CREATE) {
-        log.info("Created: " + event.context().toString() + " " + filesCount.incrementAndGet());
+        log.info("Created: " + event.context().toString() + " " + writeInFile.filesCount.incrementAndGet());
         segregate(source, directory);
       }
     }
@@ -64,8 +63,10 @@ class Segregator {
   private String getPath(Path sourceFile, Path sourcePath, String format) {
     String path = null;
     try {
+      writeInFile.writeInFileAndCount();
       BasicFileAttributes basicFileAttributes = Files.readAttributes(sourcePath, BasicFileAttributes.class);
       if (Format.JAR.format.equals(format)) {
+        writeInFile.jarFilesCount.incrementAndGet();
         FileTime creationTime = getFileTime(basicFileAttributes);
         if (creationTime.to(TimeUnit.HOURS) % 2 == 0) {
           path = Catalogs.DEV.path;
@@ -73,6 +74,7 @@ class Segregator {
           path = Catalogs.TEST.path;
         }
       } else if (Format.XML.format.equals(format)) {
+        writeInFile.xmlFilesCount.incrementAndGet();
         path = Catalogs.DEV.path;
       }
     } catch (IOException e) {

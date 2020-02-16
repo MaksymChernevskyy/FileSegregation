@@ -2,8 +2,6 @@ package com.segregator;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,8 +12,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,14 +23,14 @@ import org.slf4j.LoggerFactory;
 class Segregator {
   private AtomicLong filesCount = new AtomicLong(0L);
   private Logger log = LoggerFactory.getLogger(Segregator.class);
-  private DateTimeFormatter dataFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+  private SimpleDateFormat dataFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
-  void runSegregator() {
+  void runSegregation() {
     Path path = Paths.get(Catalogs.HOME.path);
     while (true) {
       try {
         WatchService watcher = path.getFileSystem().newWatchService();
-        path.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+        path.register(watcher, ENTRY_CREATE);
         WatchKey watchKey = watcher.take();
         getEventKind(path, watchKey);
 
@@ -69,8 +66,7 @@ class Segregator {
     try {
       BasicFileAttributes basicFileAttributes = Files.readAttributes(sourcePath, BasicFileAttributes.class);
       if (Format.JAR.format.equals(format)) {
-        FileTime creationTime = basicFileAttributes.creationTime();
-        log.info("Created time " + creationTime);
+        FileTime creationTime = getFileTime(basicFileAttributes);
         if (creationTime.to(TimeUnit.HOURS) % 2 == 0) {
           path = Catalogs.DEV.path;
         } else {
@@ -85,6 +81,13 @@ class Segregator {
     return path;
   }
 
+  private FileTime getFileTime(BasicFileAttributes basicFileAttributes) {
+    FileTime creationTime = basicFileAttributes.creationTime();
+    String dateCreated = dataFormat.format(creationTime.toMillis());
+    log.info("Created time " + dateCreated);
+    return creationTime;
+  }
+
   private void moveFiles(Path sourceFile, Path sourcePath, Path destPath) throws IOException {
     Files.move(sourcePath, destPath.resolve(sourceFile.getFileName()), REPLACE_EXISTING);
   }
@@ -94,7 +97,7 @@ class Segregator {
   }
 
   private String getFormat(String path) {
-    if (null == path) {
+    if (path == null) {
       return null;
     }
     int i = path.lastIndexOf('.');

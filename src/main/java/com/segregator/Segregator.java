@@ -15,9 +15,18 @@ import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 class Segregator {
+  private AtomicLong filesCount = new AtomicLong(0L);
+  private Logger log = LoggerFactory.getLogger(Segregator.class);
+  private DateTimeFormatter dataFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
   void runSegregator() {
     Path path = Paths.get(Catalogs.HOME.path);
@@ -29,7 +38,7 @@ class Segregator {
         getEventKind(path, watchKey);
 
       } catch (Exception e) {
-        System.out.println("Error: " + e.toString());
+        log.error("Error: " + e.toString());
       }
     }
   }
@@ -39,14 +48,7 @@ class Segregator {
     for (WatchEvent event : events) {
       Path source = Paths.get(event.context().toString());
       if (event.kind() == ENTRY_CREATE) {
-        System.out.println("Created: " + event.context().toString());
-        segregate(source, directory);
-      }
-      if (event.kind() == ENTRY_DELETE) {
-        System.out.println("Delete: " + event.context().toString());
-      }
-      if (event.kind() == ENTRY_MODIFY) {
-        System.out.println("Modify: " + event.context().toString());
+        log.info("Created: " + event.context().toString() + " " + filesCount.incrementAndGet());
         segregate(source, directory);
       }
     }
@@ -54,9 +56,9 @@ class Segregator {
 
   private void segregate(Path sourceFile, Path sourceDirectory) throws IOException {
     Path sourcePath = sourceDirectory.resolve(sourceFile);
-    System.out.println("source " + sourceFile);
+    log.info("source " + sourceFile);
     String format = getFormat(sourceFile.toString());
-    System.out.println("format " + format);
+    log.info("format " + format);
     String path = getPath(sourceFile, sourcePath, format);
     Path destPath = getPath(path);
     moveFiles(sourceFile, sourcePath, destPath);
@@ -64,24 +66,21 @@ class Segregator {
 
   private String getPath(Path sourceFile, Path sourcePath, String format) {
     String path = null;
-    if (Format.JAR.format.equals(format)) {
-      BasicFileAttributes attr = null;
-      try {
-        attr = Files.readAttributes(sourcePath, BasicFileAttributes.class);
-      } catch (IOException e) {
-        System.out.print("Couldn't get file attributes" + sourceFile.toString() + " " + e);
-      }
-      FileTime creationTime = attr.creationTime();
-      LocalDateTime time = LocalDateTime.now();
-      System.out.print("time " + time + " " + creationTime);
-      if (time.getHour() % 2 == 0 || Format.XML.format.equals(format)) {
+    try {
+      BasicFileAttributes basicFileAttributes = Files.readAttributes(sourcePath, BasicFileAttributes.class);
+      if (Format.JAR.format.equals(format)) {
+        FileTime creationTime = basicFileAttributes.creationTime();
+        log.info("Created time " + creationTime);
+        if (creationTime.to(TimeUnit.HOURS) % 2 == 0) {
+          path = Catalogs.DEV.path;
+        } else {
+          path = Catalogs.TEST.path;
+        }
+      } else if (Format.XML.format.equals(format)) {
         path = Catalogs.DEV.path;
-      } else {
-        path = Catalogs.TEST.path;
       }
-    }
-    if (null == path) {
-      return null;
+    } catch (IOException e) {
+      log.info("Couldn't get file attributes" + sourceFile.toString() + " " + e);
     }
     return path;
   }

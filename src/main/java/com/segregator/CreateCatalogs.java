@@ -1,15 +1,17 @@
 package com.segregator;
 
 import java.io.File;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CreateCatalogs {
-
+  private Logger log = LoggerFactory.getLogger(CreateCatalogs.class);
 
   private boolean createCatalog(String path) {
     File file = new File(path);
     if (!file.exists()) {
       if (file.mkdir()) {
-        System.out.println("Created catalog " + path);
+        log.info("Created catalog " + path);
       }
     }
     return true;

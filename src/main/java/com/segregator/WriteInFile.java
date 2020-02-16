@@ -11,7 +11,7 @@ class WriteInFile {
 
   void writeInFileAndCount() {
     try {
-      FileWriter writer = new FileWriter("CountingFiles.txt");
+      FileWriter writer = new FileWriter(Catalogs.HOME + "/" + "CountingFiles.txt");
       writer.write("Files count " + filesCount + "\n");
       writer.write("Jar count " + jarFilesCount + "\n");
       writer.write("Xml count " + xmlFilesCount);

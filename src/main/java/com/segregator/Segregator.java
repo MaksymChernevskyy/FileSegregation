@@ -83,6 +83,27 @@ class Segregator {
     return path;
   }
 
+  private String jarPath(String format, String path, BasicFileAttributes basicFileAttributes) {
+    if (Format.JAR.format.equals(format)) {
+      writeInFile.jarFilesCount.incrementAndGet();
+      FileTime creationTime = getFileTime(basicFileAttributes);
+      if (creationTime.to(TimeUnit.HOURS) % 2 == 0) {
+        path = Catalogs.DEV.path;
+      } else {
+        path = Catalogs.TEST.path;
+      }
+    }
+    return path;
+  }
+
+  private String xmlPath(String format, String path) {
+    if (Format.XML.format.equals(format)) {
+      writeInFile.xmlFilesCount.incrementAndGet();
+      path = Catalogs.DEV.path;
+    }
+    return path;
+  }
+
   private FileTime getFileTime(BasicFileAttributes basicFileAttributes) {
     FileTime creationTime = basicFileAttributes.creationTime();
     String dateCreated = dataFormat.format(creationTime.toMillis());

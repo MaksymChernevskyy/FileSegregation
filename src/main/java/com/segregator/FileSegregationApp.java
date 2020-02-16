@@ -6,6 +6,6 @@ public class FileSegregationApp {
     CreateCatalogs catalogs = new CreateCatalogs();
     catalogs.createCatalogsStructure();
     Segregator segregator = new Segregator();
-    segregator.runSegregator();
+    segregator.runSegregation();
   }
 }

@@ -1,4 +1,3 @@
-##File Segregator ##
 create a directory structure
 HOME
 DEV

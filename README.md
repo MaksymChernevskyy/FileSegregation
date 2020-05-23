@@ -1,7 +1,7 @@
 create a directory structure
-HOME
-DEV
-TEST
+-HOME
+-DEV
+-TEST
 
 When the file appears in the HOME directory, depending on the extension, it will move to the folder according to the following rules
 a file with the extension .jar, whose creation time is even, we move to the DEV folder
